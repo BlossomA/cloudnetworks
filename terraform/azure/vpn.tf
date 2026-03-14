@@ -1,42 +1,44 @@
-# ─── Azure ExpressRoute Simulation + VPN Gateway (Step 8) ────────────────────
-# Simulates ExpressRoute via VPN Gateway in the Virtual WAN hub
-# Also enables branch-to-branch transit
+# ─── Azure VPN Gateway (Step 8 — Hybrid Connectivity) ────────────────────────
+# BUDGET NOTE: VPN Gateway costs ~€0.19/hr (VpnGw1) or ~€0.45/hr (VpnGw1AZ).
+# With limited Azure for Students credits, deploy_vpn_gateway defaults to false.
+# Enable it only when working on Steps 7-9 (hybrid/VPN testing).
+#
+# To enable:
+#   Set deploy_vpn_gateway = true in terraform.tfvars
+#   Then: terraform apply
+# To destroy when done:
+#   Set deploy_vpn_gateway = false, then: terraform apply (or terraform destroy)
 
-# Public IP for VPN Gateway
+variable "deploy_vpn_gateway" {
+  description = "Deploy VPN Gateway (costly ~€0.19/hr). Enable for Steps 7-9 only."
+  type        = bool
+  default     = false
+}
+
+# Public IP for VPN Gateway (single, non-AZ for cost)
 resource "azurerm_public_ip" "vpn_gw" {
+  count               = var.deploy_vpn_gateway ? 1 : 0
   name                = "${var.project_name}-${var.environment}-pip-vpngw"
   location            = data.azurerm_resource_group.main.location
   resource_group_name = data.azurerm_resource_group.main.name
   allocation_method   = "Static"
   sku                 = "Standard"
-  zones               = ["1", "2", "3"]
 
   tags = local.tags
 }
 
-# Second public IP for active-active VPN Gateway
-resource "azurerm_public_ip" "vpn_gw_aa" {
-  name                = "${var.project_name}-${var.environment}-pip-vpngw-aa"
-  location            = data.azurerm_resource_group.main.location
-  resource_group_name = data.azurerm_resource_group.main.name
-  allocation_method   = "Static"
-  sku                 = "Standard"
-  zones               = ["1", "2", "3"]
-
-  tags = local.tags
-}
-
-# VPN Gateway in the hub VNet (GatewaySubnet)
+# VPN Gateway — VpnGw1 (non-AZ, cheapest BGP-capable SKU ~€0.19/hr)
 resource "azurerm_virtual_network_gateway" "hub" {
+  count               = var.deploy_vpn_gateway ? 1 : 0
   name                = "${var.project_name}-${var.environment}-vpngw-hub"
   location            = data.azurerm_resource_group.main.location
   resource_group_name = data.azurerm_resource_group.main.name
 
   type          = "Vpn"
   vpn_type      = "RouteBased"
-  active_active = true
+  active_active = false
   enable_bgp    = true
-  sku           = "VpnGw1AZ"
+  sku           = "VpnGw1"
 
   bgp_settings {
     asn = 65515
@@ -44,14 +46,7 @@ resource "azurerm_virtual_network_gateway" "hub" {
 
   ip_configuration {
     name                          = "vnetGatewayConfig"
-    public_ip_address_id          = azurerm_public_ip.vpn_gw.id
-    private_ip_address_allocation = "Dynamic"
-    subnet_id                     = azurerm_subnet.hub_gateway.id
-  }
-
-  ip_configuration {
-    name                          = "vnetGatewayConfigAA"
-    public_ip_address_id          = azurerm_public_ip.vpn_gw_aa.id
+    public_ip_address_id          = azurerm_public_ip.vpn_gw[0].id
     private_ip_address_allocation = "Dynamic"
     subnet_id                     = azurerm_subnet.hub_gateway.id
   }
@@ -59,14 +54,14 @@ resource "azurerm_virtual_network_gateway" "hub" {
   tags = local.tags
 }
 
-# Local Network Gateway - represents on-premises (Azure legacy VM)
+# Local Network Gateway — represents on-premises (Azure legacy VM at 172.161.13.168)
 resource "azurerm_local_network_gateway" "onprem" {
+  count               = var.deploy_vpn_gateway ? 1 : 0
   name                = "${var.project_name}-${var.environment}-lng-onprem"
   location            = data.azurerm_resource_group.main.location
   resource_group_name = data.azurerm_resource_group.main.name
   gateway_address     = "172.161.13.168"
-
-  address_space = ["192.168.0.0/16"]
+  address_space       = ["192.168.0.0/16"]
 
   bgp_settings {
     asn                 = 65000
@@ -76,18 +71,18 @@ resource "azurerm_local_network_gateway" "onprem" {
   tags = local.tags
 }
 
-# VPN Connection: Hub Gateway <-> On-Premises (BGP enabled)
+# VPN Connection with BGP + IPsec
 resource "azurerm_virtual_network_gateway_connection" "hub_to_onprem" {
+  count               = var.deploy_vpn_gateway ? 1 : 0
   name                = "${var.project_name}-${var.environment}-conn-hub-onprem"
   location            = data.azurerm_resource_group.main.location
   resource_group_name = data.azurerm_resource_group.main.name
 
   type                       = "IPsec"
-  virtual_network_gateway_id = azurerm_virtual_network_gateway.hub.id
-  local_network_gateway_id   = azurerm_local_network_gateway.onprem.id
+  virtual_network_gateway_id = azurerm_virtual_network_gateway.hub[0].id
+  local_network_gateway_id   = azurerm_local_network_gateway.onprem[0].id
   enable_bgp                 = true
-
-  shared_key = "MultiCloud@Lab2024!"
+  shared_key                 = "MultiCloud@Lab2024!"
 
   ipsec_policy {
     ike_encryption   = "AES256"
@@ -103,19 +98,14 @@ resource "azurerm_virtual_network_gateway_connection" "hub_to_onprem" {
   tags = local.tags
 }
 
-# Outputs
 output "vpn_gateway_id" {
-  value = azurerm_virtual_network_gateway.hub.id
+  value = var.deploy_vpn_gateway ? azurerm_virtual_network_gateway.hub[0].id : "not-deployed"
 }
 
-output "vpn_gateway_public_ip_1" {
-  value = azurerm_public_ip.vpn_gw.ip_address
-}
-
-output "vpn_gateway_public_ip_2" {
-  value = azurerm_public_ip.vpn_gw_aa.ip_address
+output "vpn_gateway_public_ip" {
+  value = var.deploy_vpn_gateway ? azurerm_public_ip.vpn_gw[0].ip_address : "not-deployed"
 }
 
 output "vpn_gateway_bgp_asn" {
-  value = azurerm_virtual_network_gateway.hub.bgp_settings[0].asn
+  value = var.deploy_vpn_gateway ? azurerm_virtual_network_gateway.hub[0].bgp_settings[0].asn : 0
 }
