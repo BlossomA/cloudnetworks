@@ -52,3 +52,7 @@ reports/
 *.rsa
 id_rsa*
 id_ed25519*
+
+# Terraform plan files
+tfplan
+*.tfplan
