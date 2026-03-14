@@ -8,7 +8,7 @@ output "spoke2_vpc_id" {
   value = aws_vpc.spoke2.id
 }
 output "transit_gateway_id" {
-  value = aws_transit_gateway.main.id
+  value = aws_ec2_transit_gateway.main.id
 }
 output "hub_test_instance_ip" {
   description = "Hub test instance private IP"
@@ -21,7 +21,7 @@ output "spoke2_test_instance_ip" {
   value = aws_instance.spoke2_test.private_ip
 }
 output "tgw_route_table_id" {
-  value = aws_transit_gateway_route_table.main.id
+  value = aws_ec2_transit_gateway_route_table.main.id
 }
 output "flow_log_group_name" {
   value = aws_cloudwatch_log_group.vpc_flow_logs.name

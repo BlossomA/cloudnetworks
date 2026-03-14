@@ -116,7 +116,7 @@ resource "aws_subnet" "spoke2_private" {
 # ──────────────────────────────────────────────
 # Transit Gateway
 # ──────────────────────────────────────────────
-resource "aws_transit_gateway" "main" {
+resource "aws_ec2_transit_gateway" "main" {
   amazon_side_asn                 = 64512
   auto_accept_shared_attachments  = "enable"
   default_route_table_association = "disable"
@@ -124,63 +124,63 @@ resource "aws_transit_gateway" "main" {
   tags                            = merge(local.tags, { Name = "${var.project_name}-tgw" })
 }
 
-resource "aws_transit_gateway_vpc_attachment" "hub" {
-  transit_gateway_id = aws_transit_gateway.main.id
+resource "aws_ec2_transit_gateway_vpc_attachment" "hub" {
+  transit_gateway_id = aws_ec2_transit_gateway.main.id
   vpc_id             = aws_vpc.hub.id
   subnet_ids         = [aws_subnet.hub_private.id]
   tags               = merge(local.tags, { Name = "${var.project_name}-tgw-attach-hub" })
 }
 
-resource "aws_transit_gateway_vpc_attachment" "spoke1" {
-  transit_gateway_id = aws_transit_gateway.main.id
+resource "aws_ec2_transit_gateway_vpc_attachment" "spoke1" {
+  transit_gateway_id = aws_ec2_transit_gateway.main.id
   vpc_id             = aws_vpc.spoke1.id
   subnet_ids         = [aws_subnet.spoke1_private.id]
   tags               = merge(local.tags, { Name = "${var.project_name}-tgw-attach-spoke1" })
 }
 
-resource "aws_transit_gateway_vpc_attachment" "spoke2" {
-  transit_gateway_id = aws_transit_gateway.main.id
+resource "aws_ec2_transit_gateway_vpc_attachment" "spoke2" {
+  transit_gateway_id = aws_ec2_transit_gateway.main.id
   vpc_id             = aws_vpc.spoke2.id
   subnet_ids         = [aws_subnet.spoke2_private.id]
   tags               = merge(local.tags, { Name = "${var.project_name}-tgw-attach-spoke2" })
 }
 
 # TGW Route Table
-resource "aws_transit_gateway_route_table" "main" {
-  transit_gateway_id = aws_transit_gateway.main.id
+resource "aws_ec2_transit_gateway_route_table" "main" {
+  transit_gateway_id = aws_ec2_transit_gateway.main.id
   tags               = merge(local.tags, { Name = "${var.project_name}-tgw-rt" })
 }
 
 # TGW Route Table Associations
-resource "aws_transit_gateway_route_table_association" "hub" {
-  transit_gateway_attachment_id  = aws_transit_gateway_vpc_attachment.hub.id
-  transit_gateway_route_table_id = aws_transit_gateway_route_table.main.id
+resource "aws_ec2_transit_gateway_route_table_association" "hub" {
+  transit_gateway_attachment_id  = aws_ec2_transit_gateway_vpc_attachment.hub.id
+  transit_gateway_route_table_id = aws_ec2_transit_gateway_route_table.main.id
 }
 
-resource "aws_transit_gateway_route_table_association" "spoke1" {
-  transit_gateway_attachment_id  = aws_transit_gateway_vpc_attachment.spoke1.id
-  transit_gateway_route_table_id = aws_transit_gateway_route_table.main.id
+resource "aws_ec2_transit_gateway_route_table_association" "spoke1" {
+  transit_gateway_attachment_id  = aws_ec2_transit_gateway_vpc_attachment.spoke1.id
+  transit_gateway_route_table_id = aws_ec2_transit_gateway_route_table.main.id
 }
 
-resource "aws_transit_gateway_route_table_association" "spoke2" {
-  transit_gateway_attachment_id  = aws_transit_gateway_vpc_attachment.spoke2.id
-  transit_gateway_route_table_id = aws_transit_gateway_route_table.main.id
+resource "aws_ec2_transit_gateway_route_table_association" "spoke2" {
+  transit_gateway_attachment_id  = aws_ec2_transit_gateway_vpc_attachment.spoke2.id
+  transit_gateway_route_table_id = aws_ec2_transit_gateway_route_table.main.id
 }
 
 # TGW Route Table Propagations
-resource "aws_transit_gateway_route_table_propagation" "hub" {
-  transit_gateway_attachment_id  = aws_transit_gateway_vpc_attachment.hub.id
-  transit_gateway_route_table_id = aws_transit_gateway_route_table.main.id
+resource "aws_ec2_transit_gateway_route_table_propagation" "hub" {
+  transit_gateway_attachment_id  = aws_ec2_transit_gateway_vpc_attachment.hub.id
+  transit_gateway_route_table_id = aws_ec2_transit_gateway_route_table.main.id
 }
 
-resource "aws_transit_gateway_route_table_propagation" "spoke1" {
-  transit_gateway_attachment_id  = aws_transit_gateway_vpc_attachment.spoke1.id
-  transit_gateway_route_table_id = aws_transit_gateway_route_table.main.id
+resource "aws_ec2_transit_gateway_route_table_propagation" "spoke1" {
+  transit_gateway_attachment_id  = aws_ec2_transit_gateway_vpc_attachment.spoke1.id
+  transit_gateway_route_table_id = aws_ec2_transit_gateway_route_table.main.id
 }
 
-resource "aws_transit_gateway_route_table_propagation" "spoke2" {
-  transit_gateway_attachment_id  = aws_transit_gateway_vpc_attachment.spoke2.id
-  transit_gateway_route_table_id = aws_transit_gateway_route_table.main.id
+resource "aws_ec2_transit_gateway_route_table_propagation" "spoke2" {
+  transit_gateway_attachment_id  = aws_ec2_transit_gateway_vpc_attachment.spoke2.id
+  transit_gateway_route_table_id = aws_ec2_transit_gateway_route_table.main.id
 }
 
 # ──────────────────────────────────────────────
@@ -210,7 +210,7 @@ resource "aws_route_table" "hub_private" {
 
   route {
     cidr_block         = "10.0.0.0/8"
-    transit_gateway_id = aws_transit_gateway.main.id
+    transit_gateway_id = aws_ec2_transit_gateway.main.id
   }
 }
 
@@ -226,7 +226,7 @@ resource "aws_route_table" "spoke1" {
 
   route {
     cidr_block         = "10.0.0.0/8"
-    transit_gateway_id = aws_transit_gateway.main.id
+    transit_gateway_id = aws_ec2_transit_gateway.main.id
   }
 }
 
@@ -247,7 +247,7 @@ resource "aws_route_table" "spoke2" {
 
   route {
     cidr_block         = "10.0.0.0/8"
-    transit_gateway_id = aws_transit_gateway.main.id
+    transit_gateway_id = aws_ec2_transit_gateway.main.id
   }
 }
 

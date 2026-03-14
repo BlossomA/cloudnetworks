@@ -56,11 +56,11 @@ resource "aws_vpn_connection" "onprem_to_hub" {
 
   # Tunnel 1 options
   tunnel1_inside_cidr   = "169.254.10.0/30"
-  tunnel1_preshared_key = "MultiCloud@Lab2024!"
+  tunnel1_preshared_key = "MultiCloud.Lab.2024"
 
   # Tunnel 2 options (failover)
   tunnel2_inside_cidr   = "169.254.10.4/30"
-  tunnel2_preshared_key = "MultiCloud@Lab2024!"
+  tunnel2_preshared_key = "MultiCloud.Lab.2024"
 
   tags = merge(local.tags, {
     Name = "${var.project_name}-${var.environment}-vpn-onprem"
