@@ -1,0 +1,54 @@
+# Credentials - NEVER commit these
+credentials
+*.tfvars
+!example.tfvars
+*.pem
+*.key
+*.json
+!requirements*.json
+.env
+.env.*
+
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+.terraform.lock.hcl
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Reports (generated, not committed)
+reports/
+
+# SSH keys
+*.rsa
+id_rsa*
+id_ed25519*
