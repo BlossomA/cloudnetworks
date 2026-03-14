@@ -212,6 +212,11 @@ resource "aws_route_table" "hub_private" {
     cidr_block         = "10.0.0.0/8"
     transit_gateway_id = aws_ec2_transit_gateway.main.id
   }
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.hub.id
+  }
 }
 
 resource "aws_route_table_association" "hub_private" {
@@ -457,6 +462,12 @@ resource "aws_instance" "hub_test" {
   user_data              = local.user_data
 
   tags = merge(local.tags, { Name = "${var.project_name}-hub-test" })
+}
+
+resource "aws_eip" "hub_test" {
+  instance = aws_instance.hub_test.id
+  domain   = "vpc"
+  tags     = merge(local.tags, { Name = "${var.project_name}-hub-eip" })
 }
 
 resource "aws_instance" "spoke1_test" {

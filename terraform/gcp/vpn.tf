@@ -65,8 +65,8 @@ resource "google_compute_external_vpn_gateway" "onprem" {
 resource "google_compute_vpn_tunnel" "hub_to_onprem_tunnel1" {
   name                            = "${var.project_name}-${var.environment}-tunnel1-hub-onprem"
   region                          = var.region
-  ha_vpn_gateway                  = google_compute_ha_vpn_gateway.hub.id
-  ha_vpn_gateway_interface        = 0
+  vpn_gateway                     = google_compute_ha_vpn_gateway.hub.id
+  vpn_gateway_interface           = 0
   peer_external_gateway           = google_compute_external_vpn_gateway.onprem.id
   peer_external_gateway_interface = 0
   router                          = google_compute_router.hub.id
@@ -78,8 +78,8 @@ resource "google_compute_vpn_tunnel" "hub_to_onprem_tunnel1" {
 resource "google_compute_vpn_tunnel" "hub_to_onprem_tunnel2" {
   name                            = "${var.project_name}-${var.environment}-tunnel2-hub-onprem"
   region                          = var.region
-  ha_vpn_gateway                  = google_compute_ha_vpn_gateway.hub.id
-  ha_vpn_gateway_interface        = 1
+  vpn_gateway                     = google_compute_ha_vpn_gateway.hub.id
+  vpn_gateway_interface           = 1
   peer_external_gateway           = google_compute_external_vpn_gateway.onprem.id
   peer_external_gateway_interface = 0
   router                          = google_compute_router.hub.id

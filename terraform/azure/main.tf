@@ -102,6 +102,11 @@ resource "azurerm_subnet" "spoke2" {
   address_prefixes     = [var.spoke2_subnet_cidr]
 }
 
+# NOTE: Hub VNet (10.10.0.0/16) cannot peer with spoke VNets because the Virtual Hub
+# (10.10.100.0/23) is within the hub CIDR range. Azure rejects peerings that would
+# create overlapping address spaces. Spoke-to-spoke routing works via the Virtual Hub.
+# Design note for report: Virtual Hub CIDR should be placed outside all VNet ranges.
+
 # Virtual Hub Connections
 resource "azurerm_virtual_hub_connection" "spoke1" {
   name                      = "${var.project_name}-${var.environment}-spoke1-conn"
@@ -297,12 +302,10 @@ resource "azurerm_subnet_network_security_group_association" "spoke2" {
   network_security_group_id = azurerm_network_security_group.spoke2.id
 }
 
-# Network Watcher
-resource "azurerm_network_watcher" "main" {
-  name                = "${var.project_name}-${var.environment}-network-watcher"
-  location            = var.location
-  resource_group_name = data.azurerm_resource_group.main.name
-  tags                = local.tags
+# Network Watcher — import the auto-created one (one per region limit on student subscriptions)
+data "azurerm_network_watcher" "main" {
+  name                = "NetworkWatcher_switzerlandnorth"
+  resource_group_name = "NetworkWatcherRG"
 }
 
 # Public IP for Hub VM

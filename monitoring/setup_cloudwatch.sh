@@ -65,11 +65,15 @@ DASHBOARD_BODY=$(cat <<EOF
 EOF
 )
 
+DASHBOARD_TMPFILE=$(mktemp /tmp/cw-dashboard-XXXXXX.json)
+echo "$DASHBOARD_BODY" > "$DASHBOARD_TMPFILE"
+
 echo "Creating CloudWatch dashboard: ${PROJECT}-network ..."
 aws cloudwatch put-dashboard \
   --dashboard-name "${PROJECT}-network" \
-  --dashboard-body "$DASHBOARD_BODY" \
+  --dashboard-body "file://${DASHBOARD_TMPFILE}" \
   --region "$AWS_REGION"
+rm -f "$DASHBOARD_TMPFILE"
 echo "Dashboard created."
 
 # 2. Create metric filter for rejected flows

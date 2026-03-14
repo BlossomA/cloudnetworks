@@ -1,0 +1,47 @@
+========================================================
+  Connectivity Test Suite
+  Started:  Sat Mar 14 20:24:52 WAT 2026
+  SSH Key:  /Users/simon/.ssh/id_rsa
+  AWS User/Key: ec2-user / /Users/simon/.ssh/id_rsa_terraform
+  Azure User/Key: azureuser / /Users/simon/.ssh/multi-cloud-lab-azure
+  GCP User/Key: gcpuser / /Users/simon/.ssh/id_ed25519
+  Ping Count: 4
+  Results:  /Users/simon/Downloads/project/tests/results/connectivity_20260314_202452.txt
+========================================================
+
+--- AWS Hub-and-Spoke ---
+  Testing: AWS Hub -> Spoke1  (34.236.167.2 -> ping 10.1.2.222, count=4, user=ec2-user)
+  Result: 4 packets transmitted, 4 received, 0% packet loss, time 3033ms
+[0;32m[PASS][0m AWS Hub -> Spoke1                                 
+  Testing: AWS Hub -> Spoke2  (34.236.167.2 -> ping 10.2.2.218, count=4, user=ec2-user)
+  Result: 4 packets transmitted, 4 received, 0% packet loss, time 3042ms
+[0;32m[PASS][0m AWS Hub -> Spoke2                                 
+
+--- Azure Hub-and-Spoke ---
+[1;33m[SKIP][0m Azure Hub -> Spoke1                               
+[1;33m[SKIP][0m Azure Hub -> Spoke2                               
+
+--- GCP Hub-and-Spoke ---
+  Testing: GCP Hub -> Spoke1  (34.55.168.87 -> ping 10.21.1.2, count=4, user=gcpuser)
+  Result: 4 packets transmitted, 4 received, 0% packet loss, time 3032ms
+[0;32m[PASS][0m GCP Hub -> Spoke1                                 
+  Testing: GCP Hub -> Spoke2  (34.55.168.87 -> ping 10.22.1.2, count=4, user=gcpuser)
+  Result: 4 packets transmitted, 4 received, 0% packet loss, time 3029ms
+[0;32m[PASS][0m GCP Hub -> Spoke2                                 
+
+========================================================
+  FINAL SUMMARY
+========================================================
+  Test                                                Result
+  --------------------------------------------------  ------
+  [0;32mAWS Hub -> Spoke1                                   PASS[0m
+  [0;32mAWS Hub -> Spoke2                                   PASS[0m
+  [1;33mAzure Hub -> Spoke1                                 SKIP[0m
+  [1;33mAzure Hub -> Spoke2                                 SKIP[0m
+  [0;32mGCP Hub -> Spoke1                                   PASS[0m
+  [0;32mGCP Hub -> Spoke2                                   PASS[0m
+
+  Total: 6  |  Pass: 4  |  Fail: 0  |  Skip: 2
+
+  Full results saved to: /Users/simon/Downloads/project/tests/results/connectivity_20260314_202452.txt
+========================================================

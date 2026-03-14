@@ -14,6 +14,10 @@ output "hub_test_instance_ip" {
   description = "Hub test instance private IP"
   value       = aws_instance.hub_test.private_ip
 }
+output "hub_vm_public_ip" {
+  description = "Hub test instance public IP (EIP)"
+  value       = aws_eip.hub_test.public_ip
+}
 output "spoke1_test_instance_ip" {
   value = aws_instance.spoke1_test.private_ip
 }

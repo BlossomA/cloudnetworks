@@ -230,23 +230,6 @@ resource "google_compute_firewall" "spoke2_allow_ssh" {
   source_ranges = ["10.20.0.0/16"]
 }
 
-# Cloud Router and HA VPN Gateway (referenced in outputs)
-resource "google_compute_router" "hub" {
-  name    = "${var.project_name}-${var.environment}-hub-router"
-  region  = var.region
-  network = google_compute_network.hub.id
-
-  bgp {
-    asn = 64514
-  }
-}
-
-resource "google_compute_ha_vpn_gateway" "hub" {
-  name    = "${var.project_name}-${var.environment}-hub-ha-vpn-gw"
-  region  = var.region
-  network = google_compute_network.hub.id
-}
-
 # Compute Images and Instances
 data "google_compute_image" "debian" {
   family  = "debian-11"

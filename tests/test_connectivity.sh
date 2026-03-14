@@ -32,6 +32,9 @@ GCP_HUB_IP="${GCP_HUB_IP:-}"
 GCP_SPOKE1_IP="${GCP_SPOKE1_IP:-}"
 GCP_SPOKE2_IP="${GCP_SPOKE2_IP:-}"
 SSH_KEY="${SSH_KEY:-${HOME}/.ssh/id_rsa}"
+AWS_SSH_USER="${AWS_SSH_USER:-ec2-user}"
+AZURE_SSH_USER="${AZURE_SSH_USER:-azureuser}"
+GCP_SSH_USER="${GCP_SSH_USER:-gcpuser}"
 COUNT=5
 
 PASS_COUNT=0
@@ -57,6 +60,9 @@ Usage: $0 [OPTIONS]
   --gcp-spoke1-ip IP    GCP spoke1 VM internal IP
   --gcp-spoke2-ip IP    GCP spoke2 VM internal IP
   --ssh-key PATH        SSH private key (default: ~/.ssh/id_rsa)
+  --aws-ssh-user USER   SSH user for AWS (default: ec2-user)
+  --azure-ssh-user USER SSH user for Azure (default: azureuser)
+  --gcp-ssh-user USER   SSH user for GCP (default: gcpuser)
   --count N             Ping count per test (default: 5)
   -h|--help             Show this help
 EOF
@@ -75,6 +81,9 @@ while [[ $# -gt 0 ]]; do
     --gcp-spoke1-ip)   GCP_SPOKE1_IP="$2";   shift 2 ;;
     --gcp-spoke2-ip)   GCP_SPOKE2_IP="$2";   shift 2 ;;
     --ssh-key)         SSH_KEY="$2";          shift 2 ;;
+    --aws-ssh-user)    AWS_SSH_USER="$2";     shift 2 ;;
+    --azure-ssh-user)  AZURE_SSH_USER="$2";   shift 2 ;;
+    --gcp-ssh-user)    GCP_SSH_USER="$2";     shift 2 ;;
     --count)           COUNT="$2";            shift 2 ;;
     -h|--help)         usage ;;
     *) echo "Unknown argument: $1" >&2; usage ;;
@@ -98,7 +107,6 @@ NC='\033[0m'
 # Logging: write to stdout AND results file (colors stripped in file)
 # ---------------------------------------------------------------------------
 log() {
-  # Write plain text to file, colored to terminal
   echo -e "$@" | tee -a "$RESULT_FILE"
 }
 
@@ -108,7 +116,6 @@ log_plain() {
 
 # ---------------------------------------------------------------------------
 # print_result(label, pass_fail)
-#   Prints label with green PASS or red FAIL.
 # ---------------------------------------------------------------------------
 print_result() {
   local label="$1"
@@ -123,9 +130,7 @@ print_result() {
 }
 
 # ---------------------------------------------------------------------------
-# run_ping_test(label, src_ip, dst_ip, ssh_key, count)
-#   SSH into src_ip and ping dst_ip. Parses packet loss from output.
-#   Updates PASS_COUNT, FAIL_COUNT, SKIP_COUNT and TEST_RESULTS array.
+# run_ping_test(label, src_ip, dst_ip, ssh_key, count, ssh_user, ssh_key_for_cloud)
 # ---------------------------------------------------------------------------
 run_ping_test() {
   local label="$1"
@@ -133,6 +138,11 @@ run_ping_test() {
   local dst_ip="$3"
   local ssh_key="$4"
   local count="$5"
+  local ssh_user="${6:-ec2-user}"
+  local cloud_key="${7:-}"
+
+  # Use cloud-specific key if provided
+  local effective_key="${cloud_key:-$ssh_key}"
 
   # Skip if IPs not provided
   if [[ -z "$src_ip" || -z "$dst_ip" ]]; then
@@ -142,18 +152,17 @@ run_ping_test() {
     return
   fi
 
-  log_plain "  Testing: $label  ($src_ip -> ping $dst_ip, count=$count)"
+  log_plain "  Testing: $label  ($src_ip -> ping $dst_ip, count=$count, user=$ssh_user)"
 
-  local ssh_opts="-o StrictHostKeyChecking=no -o ConnectTimeout=10 -o BatchMode=yes"
-  if [[ -n "$ssh_key" && -f "$ssh_key" ]]; then
-    ssh_opts="$ssh_opts -i $ssh_key"
+  local ssh_opts="-o StrictHostKeyChecking=no -o ConnectTimeout=15 -o BatchMode=yes"
+  if [[ -n "$effective_key" && -f "$effective_key" ]]; then
+    ssh_opts="$ssh_opts -i $effective_key"
   fi
 
-  # Run the ping via SSH; capture output even on non-zero exit
   local ping_output
   local ssh_status=0
   # shellcheck disable=SC2086
-  ping_output=$(ssh $ssh_opts "ec2-user@${src_ip}" \
+  ping_output=$(ssh $ssh_opts "${ssh_user}@${src_ip}" \
     "ping -c ${count} -W 2 ${dst_ip}" 2>&1) || ssh_status=$?
 
   if [[ $ssh_status -ne 0 && -z "$ping_output" ]]; then
@@ -164,11 +173,9 @@ run_ping_test() {
     return
   fi
 
-  # Parse packet loss
   local loss_pct=""
   loss_pct=$(echo "$ping_output" | grep -oE '[0-9]+% packet loss' | grep -oE '^[0-9]+' | head -1 || true)
 
-  # Log the summary line from ping output
   local summary_line
   summary_line=$(echo "$ping_output" | grep -E "packet loss" | head -1 || true)
   log_plain "  Result: $summary_line"
@@ -193,10 +200,18 @@ run_ping_test() {
 # ---------------------------------------------------------------------------
 # Main test execution
 # ---------------------------------------------------------------------------
+# Determine cloud-specific SSH keys
+AWS_KEY="${AWS_KEY:-$SSH_KEY}"
+AZURE_KEY="${AZURE_KEY:-${HOME}/.ssh/multi-cloud-lab-azure}"
+GCP_KEY="${GCP_KEY:-$SSH_KEY}"
+
 log "========================================================"
 log "  Connectivity Test Suite"
 log "  Started:  $(date)"
 log "  SSH Key:  $SSH_KEY"
+log "  AWS User/Key: $AWS_SSH_USER / $AWS_KEY"
+log "  Azure User/Key: $AZURE_SSH_USER / $AZURE_KEY"
+log "  GCP User/Key: $GCP_SSH_USER / $GCP_KEY"
 log "  Ping Count: $COUNT"
 log "  Results:  $RESULT_FILE"
 log "========================================================"
@@ -204,20 +219,20 @@ log "========================================================"
 # --- AWS ---
 log ""
 log "--- AWS Hub-and-Spoke ---"
-run_ping_test "AWS Hub -> Spoke1"  "$AWS_HUB_IP"  "$AWS_SPOKE1_IP"  "$SSH_KEY" "$COUNT"
-run_ping_test "AWS Hub -> Spoke2"  "$AWS_HUB_IP"  "$AWS_SPOKE2_IP"  "$SSH_KEY" "$COUNT"
+run_ping_test "AWS Hub -> Spoke1"  "$AWS_HUB_IP"  "$AWS_SPOKE1_IP"  "$SSH_KEY" "$COUNT" "$AWS_SSH_USER"  "$AWS_KEY"
+run_ping_test "AWS Hub -> Spoke2"  "$AWS_HUB_IP"  "$AWS_SPOKE2_IP"  "$SSH_KEY" "$COUNT" "$AWS_SSH_USER"  "$AWS_KEY"
 
 # --- Azure ---
 log ""
 log "--- Azure Hub-and-Spoke ---"
-run_ping_test "Azure Hub -> Spoke1"  "$AZURE_HUB_IP"  "$AZURE_SPOKE1_IP"  "$SSH_KEY" "$COUNT"
-run_ping_test "Azure Hub -> Spoke2"  "$AZURE_HUB_IP"  "$AZURE_SPOKE2_IP"  "$SSH_KEY" "$COUNT"
+run_ping_test "Azure Hub -> Spoke1"  "$AZURE_HUB_IP"  "$AZURE_SPOKE1_IP"  "$SSH_KEY" "$COUNT" "$AZURE_SSH_USER" "$AZURE_KEY"
+run_ping_test "Azure Hub -> Spoke2"  "$AZURE_HUB_IP"  "$AZURE_SPOKE2_IP"  "$SSH_KEY" "$COUNT" "$AZURE_SSH_USER" "$AZURE_KEY"
 
 # --- GCP ---
 log ""
 log "--- GCP Hub-and-Spoke ---"
-run_ping_test "GCP Hub -> Spoke1"  "$GCP_HUB_IP"  "$GCP_SPOKE1_IP"  "$SSH_KEY" "$COUNT"
-run_ping_test "GCP Hub -> Spoke2"  "$GCP_HUB_IP"  "$GCP_SPOKE2_IP"  "$SSH_KEY" "$COUNT"
+run_ping_test "GCP Hub -> Spoke1"  "$GCP_HUB_IP"  "$GCP_SPOKE1_IP"  "$SSH_KEY" "$COUNT" "$GCP_SSH_USER"  "$GCP_KEY"
+run_ping_test "GCP Hub -> Spoke2"  "$GCP_HUB_IP"  "$GCP_SPOKE2_IP"  "$SSH_KEY" "$COUNT" "$GCP_SSH_USER"  "$GCP_KEY"
 
 # ---------------------------------------------------------------------------
 # Final summary table

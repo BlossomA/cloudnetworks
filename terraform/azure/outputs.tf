@@ -29,5 +29,5 @@ output "spoke2_vm_private_ip" {
   value = azurerm_network_interface.spoke2_vm.private_ip_address
 }
 output "network_watcher_id" {
-  value = azurerm_network_watcher.main.id
+  value = data.azurerm_network_watcher.main.id
 }
