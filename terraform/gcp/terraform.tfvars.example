@@ -1,0 +1,16 @@
+# Copy this file to terraform.tfvars and fill in values
+# Do NOT commit terraform.tfvars to git
+
+project_id           = "project-903fb6d7-a6c2-406c-9bb"
+region               = "us-central1"
+zone                 = "us-central1-a"
+project_name         = "multi-cloud-net"
+environment          = "lab"
+
+hub_subnet_cidr      = "10.20.1.0/24"
+spoke1_subnet_cidr   = "10.21.1.0/24"
+spoke2_subnet_cidr   = "10.22.1.0/24"
+
+machine_type         = "e2-micro"
+ssh_user             = "gcpuser"
+ssh_pub_key          = "gcpuser:ssh-rsa AAAA... your-public-key-here"
